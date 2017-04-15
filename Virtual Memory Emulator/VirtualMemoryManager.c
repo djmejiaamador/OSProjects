@@ -1,29 +1,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+
 #define CHAR_BUFF_SIZE 10
 #define PAGE_TABLE_SIZE 256
+#define TLB_SIZE 16
 
+
+/*---- STRUCT DECLARATION ------*/
+struct TLB
+{
+    int frames[TLB_SIZE];
+    //initializeData(frames,TLB_SIZE);
+    int pages[TLB_SIZE];
+    //initializeData(pages,PAGE_TABLE_SIZE);
+};
+
+typedef struct TLB TLB;
+
+
+/* ------------ METHODS DECLARATIONS ----------*/
+int getPageNum( int num );
+void printArray( int  *data, int size);
+void initializeData( int  *data, int size);
+int getPhysical(int num);
+int getOffset(int num);
+int find( TLB* tlb ,int logical);
+int readDisk(int pageNum, int offSet);
+
+
+/* ------------VARIABLE DECLARATIONS ---------*/
 
 int pageTable[PAGE_TABLE_SIZE];
 int validFrame[PAGE_TABLE_SIZE];
+int tlb[TLB_SIZE][TLB_SIZE];
 int physicalMemory[65536];
-
 int translation = 0;
 int pagefault = 0;
+int tlb_miss = 0;
+int tlb_counter = 0;
 
 FILE    *address_file;
 FILE    *backing_store;
 
 char  char_buff[PAGE_TABLE_SIZE];
 
-int getPageNum( int num );
-void printArray( int  *data, int size);
-void initializeData( int  *data, int size);
-int getPhysical(int num);
-int getOffset(int num);
-int find( int logical);
-int readDisk(int pageNum, int offSet);
+
+
 
 
 /// dividde by 256 and get page 
@@ -52,20 +75,40 @@ int readDisk(int pageNum, int offSet);
 
 /*  get gets the physical address */
 
-int find(int logical){
+int find(struct TLB* tlb, int logical){
 
     int pageNum = getPageNum(logical);
     int offset = getOffset(logical);
-    int frame;
+    int frame = -1;
 
-    // Not i
-    if(pageTable[pageNum] == -1){
-        pagefault ++;
-        frame = readDisk(pageNum, offset);
-
-    }else{
-        frame = pageTable[pageNum];
+    //Check TLB
+    int j;
+    for(j = 0 ; j < TLB_SIZE; j++ ){
+        if(tlb->pages[j] == pageNum){
+            frame = tlb->frames[j];
+        }
     }
+
+    //check page table
+    if( frame == -1){
+        if(pageTable[pageNum] == -1){
+            pagefault ++;
+            frame = readDisk(pageNum, offset);
+        }else{
+            frame = pageTable[pageNum];
+        }
+
+        // after frame has been found load that page and frame into tlb
+        // use of modulo to have it act as a circular array
+        // will only update if need arises
+        // last in last out ? 
+        tlb->pages[tlb_counter%TLB_SIZE] = pageNum;
+        tlb->frames[tlb_counter%TLB_SIZE] = frame; 
+
+    }
+    
+
+   
 
     //printf(" is: %d \n", frame);
     return (frame * PAGE_TABLE_SIZE) + offset ;
@@ -151,10 +194,15 @@ void printArray(int *data, int size){
 }
 
 
+
 int main (void) {
+
+     TLB tlb;
 
     initializeData(pageTable, PAGE_TABLE_SIZE);
     initializeData(validFrame, PAGE_TABLE_SIZE);
+    initializeData(tlb.frames, TLB_SIZE);
+    initializeData(tlb.pages, TLB_SIZE);
 
     int numOfTranslation  = 0; 
 
@@ -174,10 +222,11 @@ int main (void) {
     while(  fgets(line,CHAR_BUFF_SIZE, address_file) != NULL ){
         int pageNum = getPageNum(atoi(line));
         int offNum = getOffset(atoi(line));
+        int physical_Addr = find(&tlb,atoi(line));
 
         // printf("Logical Address: %d  Page Num: %d   offSet: %d   value:  %d  \n",atoi(line), pageNum, offNum, find(atoi(line)) );
         //printf("Logical Address: %d  Page Num: %d   offSet: %d   Physical Address:  %d   value: %d \n",atoi(line), pageNum, offNum, find(atoi(line)), physicalMemory[find(atoi(line))] );
-        printf("Logical Address: %d  Physical memomry:  %d   value: %d \n",atoi(line), find(atoi(line)), physicalMemory[find(atoi(line))] );
+        printf("Logical Address: %d  Physical memomry:  %d   value: %d \n",atoi(line), physical_Addr, physicalMemory[physical_Addr] );
 
         numOfTranslation++;
 
@@ -186,10 +235,11 @@ int main (void) {
 
 
 
-    /*------------ Final Data ---------------*/
+    printf("/*------------ Final Data ---------------*/\n");
+
 
     printf("number of Translation: %d\n", numOfTranslation);
-
+    printf("Number of Page Faults: %d\n", pagefault);
 
    return 0;
    
