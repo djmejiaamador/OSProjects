@@ -1,19 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#define CHAR_BUFF 10
+#define CHAR_BUFF_SIZE 10
 #define PAGE_TABLE_SIZE 256
-#define P
+
 
 int pageTable[PAGE_TABLE_SIZE];
-int psysicalMemory[65536];
+int validFrame[PAGE_TABLE_SIZE];
+int physicalMemory[65536];
+
+int translation = 0;
+int pagefault = 0;
+
+FILE    *address_file;
+FILE    *backing_store;
+
+char  char_buff[PAGE_TABLE_SIZE];
 
 int getPageNum( int num );
 void printArray( int  *data, int size);
 void initializeData( int  *data, int size);
 int getPhysical(int num);
 int getOffset(int num);
-void find( int logical);
+int find( int logical);
+int readDisk(int pageNum, int offSet);
 
 
 /// dividde by 256 and get page 
@@ -40,6 +50,71 @@ void find( int logical);
 
 */
 
+/*  get gets the physical address */
+
+int find(int logical){
+
+    int pageNum = getPageNum(logical);
+    int offset = getOffset(logical);
+    int frame;
+
+    // Not i
+    if(pageTable[pageNum] == -1){
+        pagefault ++;
+        frame = readDisk(pageNum, offset);
+
+    }else{
+        frame = pageTable[pageNum];
+    }
+
+    printf("Frame is: %d \n", frame);
+    return (frame * PAGE_TABLE_SIZE) + offset ;
+
+}
+
+/* this reads disk and writes to physical memomry array */
+int readDisk(int pageNum, int offSet){
+   
+    //TODO  REWORD theses 
+    // first seek to byte CHUNK in the backing store
+    // SEEK_SET in fseek() seeks from the beginning of the file
+    if (fseek(backing_store, pageNum * PAGE_TABLE_SIZE, SEEK_SET) != 0) {
+        fprintf(stderr, "Error seeking in backing store\n");
+    }
+    
+    // read CHUNK bytes from the backing store to the buffer
+    if (fread(char_buff, sizeof(signed char), PAGE_TABLE_SIZE, backing_store) == 0) {
+        fprintf(stderr, "Error reading from backing store\n");        
+    }
+
+    // get available frame number
+    int availableFrame;
+    for( int i = 0 ; i < PAGE_TABLE_SIZE ; i++){
+        if(validFrame[i] == -1){
+            validFrame[i] = 0;
+            availableFrame = i;
+            break;
+        }
+    }
+
+
+    int startingIndex = PAGE_TABLE_SIZE * availableFrame;
+
+
+    int i;
+    for(i = 0; i < PAGE_TABLE_SIZE; i++){
+        physicalMemory[startingIndex++] = char_buff[i];
+    }
+    
+    
+
+    pagefault++;
+    pageTable[pageNum] = (availableFrame * PAGE_TABLE_SIZE) + offSet; 
+
+    return availableFrame;
+
+
+}
 
 //TODO add Documentation
 int getOffset(int num){
@@ -80,26 +155,40 @@ void printArray(int *data, int size){
 int main (void) {
 
     initializeData(pageTable, PAGE_TABLE_SIZE);
+    initializeData(validFrame, PAGE_TABLE_SIZE);
+
+    int numOfTranslation  = 0; 
+
 
     //printArray(pageTable, PAGE_TABLE_SIZE);
 
-    char line[CHAR_BUFF];
-    static const char filename[] = "addresses.txt";
-    FILE *file = fopen ( filename, "r" );
-    if(file == NULL){
+    char line[CHAR_BUFF_SIZE];
+    
+    address_file = fopen ( "addresses.txt", "r" );
+    backing_store = fopen ( "BACKING_STORE.bin", "r" );
+    if(address_file == NULL){
         printf("Something went wrong when opening file\n");
         return -1;
     }
 
-    //printf("WHAT???\n");
     /* This reads each line in the file */
-    while(  fgets(line,CHAR_BUFF, file) != NULL ){
+    while(  fgets(line,CHAR_BUFF_SIZE, address_file) != NULL ){
         int pageNum = getPageNum(atoi(line));
-        //printf("Page Number: %d\n", pageNum);
-        int frameNum = getOffset(atoi(line));
-        
-        //printf("Frame Number: %d\n", frameNum);
+        int offNum = getOffset(atoi(line));
+
+        // printf("Logical Address: %d  Page Num: %d   offSet: %d   value:  %d  \n",atoi(line), pageNum, offNum, find(atoi(line)) );
+        printf("Logical Address: %d  Page Num: %d   offSet: %d   value:  %d  \n",atoi(line), pageNum, offNum, find(atoi(line)) );
+        numOfTranslation++;
+
+
     }
+
+
+
+    /*------------ Final Data ---------------*/
+
+    printf("number of Translation: %d\n", numOfTranslation);
+
 
    return 0;
    
