@@ -67,7 +67,7 @@ int find(int logical){
         frame = pageTable[pageNum];
     }
 
-    printf("Frame is: %d \n", frame);
+    //printf(" is: %d \n", frame);
     return (frame * PAGE_TABLE_SIZE) + offset ;
 
 }
@@ -109,8 +109,7 @@ int readDisk(int pageNum, int offSet){
     
 
     pagefault++;
-    pageTable[pageNum] = (availableFrame * PAGE_TABLE_SIZE) + offSet; 
-
+    pageTable[pageNum] = availableFrame;
     return availableFrame;
 
 
@@ -177,7 +176,9 @@ int main (void) {
         int offNum = getOffset(atoi(line));
 
         // printf("Logical Address: %d  Page Num: %d   offSet: %d   value:  %d  \n",atoi(line), pageNum, offNum, find(atoi(line)) );
-        printf("Logical Address: %d  Page Num: %d   offSet: %d   value:  %d  \n",atoi(line), pageNum, offNum, find(atoi(line)) );
+        //printf("Logical Address: %d  Page Num: %d   offSet: %d   Physical Address:  %d   value: %d \n",atoi(line), pageNum, offNum, find(atoi(line)), physicalMemory[find(atoi(line))] );
+        printf("Logical Address: %d  Physical memomry:  %d   value: %d \n",atoi(line), find(atoi(line)), physicalMemory[find(atoi(line))] );
+
         numOfTranslation++;
 
 
