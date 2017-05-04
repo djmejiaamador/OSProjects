@@ -8,17 +8,20 @@
 void printArray(int *data, int size);
 void initializeData( int  *data, int size);
 int generateRequest();
-int cscan(int* request,int start );
-int scan(int* request,int start);
+
 int FirstComeFirstServe(int* request,int start);
 int shortestSeekingTimeFirst(int* request,int start);
-int* sort(int * ranArray);
+int scan(int* request,int start);
+int look(int* request,int start); 
+int cscan(int* request,int start );
+int clook(int* request,int start );
+
+
+int copy_array( int * arr , int* cpy);
 
 
 
 //int request[1000];
-
-
 int request[10]= {2069, 1212, 2296, 2800, 544,1618, 356,1523, 4965, 3681}; 
 
 
@@ -47,7 +50,6 @@ int firstComeFirstServe(int* request,int start){
 	for( i = 0; i < REQUEST; i++){
 
 		if( request_serviced[i] == -1 ) {
-			printf("request %d \n", request[i]);
 			request_serviced[i] = 1;
 			cylinders += abs(request[i] - head);
 			head = request[i];
@@ -57,23 +59,32 @@ int firstComeFirstServe(int* request,int start){
 	return cylinders;
 }
 
+
 int shortestSeekingTimeFirst(int* request,int start){
 	int head = start;
 	int cylinders = 0; 
 	int request_serviced[REQUEST];
-	
-	int reorder[REQUEST];
-	// must find min distance
-	int minDistance = CYLINDER_SIZE+1;
-	for( i = 0; i < REQUEST; i++){
-		if( abs(head-request[i]) < min ) {
-			minDistance = request[i];	
+	int i;
+	int index_counter = 0;
+	int temp_head = start;
+
+	initializeData(request_serviced,REQUEST);
+	while(index_counter < REQUEST){
+
+		int lo = CYLINDER_SIZE+1;
+		int min_index;
+		for(i=0; i< REQUEST;i++){
+			if( (abs(temp_head - request[i]) < lo) && (request_serviced[i] == -1) ) {
+				lo = abs(temp_head - request[i]) ; 
+				min_index = i; 
+			}
 		}
+		request_serviced[min_index] = 1;
+		cylinders  += abs(temp_head - request[min_index]);
+		temp_head= request[min_index];
+		index_counter++;
 	}
-	printf(" shorsters seeking is:%d\n",minDistance );
 
-
-	
 	return cylinders;
 }
 
@@ -86,14 +97,16 @@ int cscan(int* request, int start ){
 	initializeData(request_serviced, REQUEST);
 
 
-	request = sort(request);
+	int array_cpy[REQUEST];
+	copy_array(array_cpy,request);
+
+
 	for( i = 0; i < REQUEST; i++){
 
-		if( (request[i] > head) && (request_serviced[i] == -1) ) {
-			printf("request %d \n", request[i]);
+		if( (array_cpy[i] > head) && (request_serviced[i] == -1) ) {
 			request_serviced[i] = 1;
-			cylinders += request[i] - head;
-			head = request[i];
+			cylinders += abs(array_cpy[i] - head);
+			head = array_cpy[i];
 			
 		}
 	}
@@ -107,11 +120,10 @@ int cscan(int* request, int start ){
 
 	// now go to max
 	for( i = 0; i < REQUEST; i++){
-		if(request[i] > head && request_serviced[i] == -1){
-			printf("request %d \n", request[i]);
+		if(array_cpy[i] > head && request_serviced[i] == -1){
 			request_serviced[i] = 1;
-			cylinders += request[i] - head;
-			head = request[i];
+			cylinders += abs(array_cpy[i] - head);
+			head = array_cpy[i];
 		}
 	}
 
@@ -127,15 +139,14 @@ int scan(int* request, int start ){
 	int distance = 0;
 	initializeData(request_serviced, REQUEST);
 
-	request = sort(request);
-	printf("---------Scan---------\n");
-
+	int array_cpy[REQUEST];
+	copy_array(array_cpy,request);
 	//adding all values < head 
 	for( i = REQUEST-1; i >=0; i--){
-		if( (request[i] < head) && (request_serviced[i] == -1) ) {
+		if( (array_cpy[i] < head) && (request_serviced[i] == -1) ) {
 			request_serviced[i] = 1;
-			cylinders += head-request[i];
-			head = request[i];
+			cylinders += abs(array_cpy[i] - head);
+			head =array_cpy[i];
 		}
 	}
 
@@ -147,10 +158,78 @@ int scan(int* request, int start ){
 
 	// now adding all values > head 
 	for( i = REQUEST-1; i >=0; i--){
-		if( (request[i] > head) && (request_serviced[i] == -1) ) {
+		if( (array_cpy[i] > head) && (request_serviced[i] == -1) ) {
 			request_serviced[i] = 1;
-			cylinders += request[i] - head;
-			head = request[i];
+			cylinders += abs(array_cpy[i] - head);
+			head = array_cpy[i];
+		}
+	}
+
+	return cylinders;
+}
+
+int clook(int* request,int start ){
+	int head = start;
+	int cylinders = 0; 
+	int request_serviced[REQUEST];
+	int i;
+	int distance = 0;
+	initializeData(request_serviced, REQUEST);
+
+	int array_cpy[REQUEST];
+	copy_array(array_cpy,request);
+
+	for( i = 0; i < REQUEST; i++){
+		//printf("request %d \n", array_cpy[i]);
+		if( (array_cpy[i] > head) && (request_serviced[i] == -1) ) {
+			request_serviced[i] = 1;
+			cylinders += abs(array_cpy[i] - head);
+			head = array_cpy[i];
+		}
+	}
+
+	// now go to max
+
+	for( i = 0; i < REQUEST; i++){
+		if(request_serviced[i] == -1 ) {
+			request_serviced[i] = 1;
+			cylinders += abs(array_cpy[i] - head);
+			head = array_cpy[i];
+		}
+	}
+
+	return cylinders;
+}
+
+
+int look(int* request,int start){
+	
+	int head = start;
+	int cylinders = 0; 
+	int request_serviced[REQUEST];
+	int i;
+	int distance = 0;
+	initializeData(request_serviced, REQUEST);
+
+	int array_cpy[REQUEST];
+	copy_array(array_cpy,request);
+	
+	//adding all values < head 
+	for( i = REQUEST-1; i >=0; i--){
+		if( (array_cpy[i] < head) && (request_serviced[i] == -1) ) {
+			request_serviced[i] = 1;
+			cylinders += abs(array_cpy[i] - head);
+			head = array_cpy[i];
+		}
+	}
+
+
+	// now adding all values > head 
+	for( i = REQUEST-1; i >=0; i--){
+		if( (array_cpy[i] > head) && (request_serviced[i] == -1) ) {
+			request_serviced[i] = 1;
+			cylinders += abs(array_cpy[i] - head);
+			head = array_cpy[i];
 		}
 	}
 
@@ -175,34 +254,28 @@ void initializeData( int  *data, int size){
     }
 }
 
-
-int* sort(int * ranArray) {
-
+int copy_array( int * arr , int* cpy){	
 	int i = 0;
 	int j = 0;
-	int* aTest = malloc(sizeof(int) * sizeof(ranArray)/ranArray[0]);  
-
 	for(i = 0; i < 10; i++) {
-		aTest[i] = 0;
+		arr[i] = 0;
 	}
 	for(i = 0; i < 10; i++) {
-		aTest[i] = ranArray[i];
+		arr[i] = cpy[i];
 	}
 
 	int a;
 	for (i = 0; i < 10; ++i) {
        	for (j = i + 1; j < 10; ++j) {
-            if (aTest[i] > aTest[j]) {
-                a =  aTest[i];
-                aTest[i] = 	aTest[j];
-                aTest[j] = a;
+            if (arr[i] > arr[j]) {
+                a =  arr[i];
+                arr[i] = 	arr[j];
+                arr[j] = a;
             }
         }
     }
-
-	return aTest;
+    return 1;
 }
-
 
 
 
@@ -222,9 +295,11 @@ int main(int argc, char **argv)
     }
 
 	generateRequest();
-	printf("first come, first serve is:%d\n", firstComeFirstServe(request,atoi(argv[1])) );
-	printf("shortest Seeking Time First:%d\n", shortestSeekingTimeFirst(request,atoi(argv[1])) );
-	printf("CScan is: %d\n", cscan(request, atoi(argv[1]) ) );
+	printf("fcfs is:%d\n", firstComeFirstServe(request,atoi(argv[1])) );
+	printf("sstf:%d\n", shortestSeekingTimeFirst(request,atoi(argv[1]) )) ;
 	printf("Scan is: %d\n", scan(request, atoi(argv[1]) ) );
+	printf("LOOK is: %d\n", look(request, atoi(argv[1]) ) );
+	printf("CScan is: %d\n", cscan(request, atoi(argv[1]) ) );
+	printf("C-LOOK is: %d\n", clook(request, atoi(argv[1]) ) );
 
 }
