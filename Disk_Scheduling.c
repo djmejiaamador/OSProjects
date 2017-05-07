@@ -1,9 +1,10 @@
 #include<stdio.h>
 #include <stdlib.h>
 #include <string.h>
+// #define CYLINDER_SIZE 199
 #define CYLINDER_SIZE 5000
-// #define REQUEST 1000
-#define REQUEST 10
+#define REQUEST 1000
+// #define REQUEST 10
 
 void printArray(int *data, int size);
 void initializeData( int  *data, int size);
@@ -21,20 +22,18 @@ int copy_array( int * arr , int* cpy);
 
 
 
-//int request[1000];
-int request[10]= {2069, 1212, 2296, 2800, 544,1618, 356,1523, 4965, 3681}; 
+int request[REQUEST];
 
+/** for other test */
+// int request[REQUEST]= {2069, 1212, 2296, 2800, 544,1618, 356,1523, 4965, 3681}; 
+// 
+// int request[REQUEST]= {95, 180, 34, 119, 11, 123, 62, 64}; 
 
 int generateRequest(){
-	// unsigned int seed = CYLINDER_SIZE;
-	// srand(seed);
-	// int i;
-	// for(i = 0; i < 1000; i++){
-	// 	request[i] = rand() % 5000;
-	// }
-
-	// printArray(request,1000);
-
+	int i;
+	for(i = 0; i < REQUEST; i++){
+		request[i] = rand() % 5000;
+	}
 
 	return 1;
 }
@@ -48,13 +47,10 @@ int firstComeFirstServe(int* request,int start){
 	initializeData(request_serviced, REQUEST);
 
 	for( i = 0; i < REQUEST; i++){
-
-		if( request_serviced[i] == -1 ) {
-			request_serviced[i] = 1;
-			cylinders += abs(request[i] - head);
-			head = request[i];
+		// printf("\thead: %d  next:%d  diference:%d\n", head,request[i],  abs(request[i] - head));
+		cylinders += abs(head- request[i]);
+		head = request[i];
 			
-		}
 	}
 	return cylinders;
 }
@@ -68,10 +64,10 @@ int shortestSeekingTimeFirst(int* request,int start){
 	int index_counter = 0;
 	int temp_head = start;
 
+	//int lo = CYLINDER_SIZE+1;
 	initializeData(request_serviced,REQUEST);
 	while(index_counter < REQUEST){
-
-		int lo = CYLINDER_SIZE+1;
+		int lo = CYLINDER_SIZE;
 		int min_index;
 		for(i=0; i< REQUEST;i++){
 			if( (abs(temp_head - request[i]) < lo) && (request_serviced[i] == -1) ) {
@@ -100,10 +96,13 @@ int cscan(int* request, int start ){
 	int array_cpy[REQUEST];
 	copy_array(array_cpy,request);
 
+	// printArray(array_cpy,REQUEST);
+
 
 	for( i = 0; i < REQUEST; i++){
 
 		if( (array_cpy[i] > head) && (request_serviced[i] == -1) ) {
+			// printf("\thead: %d  next:%d  diference:%d\n", head,array_cpy[i],  abs(array_cpy[i] - head));
 			request_serviced[i] = 1;
 			cylinders += abs(array_cpy[i] - head);
 			head = array_cpy[i];
@@ -111,16 +110,20 @@ int cscan(int* request, int start ){
 		}
 	}
 
-	//after it reached the highest got to max
-	cylinders += 4999 - head;
+	// printf("after it reached the highest got to max\n");
+	//printf("head: %d  diff to max: %d\n", head, CYLINDER_SIZE - head);
+	cylinders += (CYLINDER_SIZE-1) - head;
+	// printf("head: %d  diff to max: %d\n", head, CYLINDER_SIZE -1 - head);
 	// from max to min 
-	cylinders += 4999;
+	cylinders += CYLINDER_SIZE-1;
 	// HEAD NOW 0	
 	head = 0;
-
+	// printf("\n");
 	// now go to max
 	for( i = 0; i < REQUEST; i++){
 		if(array_cpy[i] > head && request_serviced[i] == -1){
+			// printf("\thead: %d  next:%d  diference:%d\n", head,array_cpy[i],  abs(array_cpy[i] - head));
+
 			request_serviced[i] = 1;
 			cylinders += abs(array_cpy[i] - head);
 			head = array_cpy[i];
@@ -257,16 +260,16 @@ void initializeData( int  *data, int size){
 int copy_array( int * arr , int* cpy){	
 	int i = 0;
 	int j = 0;
-	for(i = 0; i < 10; i++) {
+	for(i = 0; i < REQUEST; i++) {
 		arr[i] = 0;
 	}
-	for(i = 0; i < 10; i++) {
+	for(i = 0; i < REQUEST; i++) {
 		arr[i] = cpy[i];
 	}
 
 	int a;
-	for (i = 0; i < 10; ++i) {
-       	for (j = i + 1; j < 10; ++j) {
+	for (i = 0; i < REQUEST; ++i) {
+       	for (j = i + 1; j < REQUEST; ++j) {
             if (arr[i] > arr[j]) {
                 a =  arr[i];
                 arr[i] = 	arr[j];
@@ -283,16 +286,19 @@ int main(int argc, char **argv)
 {
 	
 	printf("argc is: %d\n", argc);
+
+	int position = atoi(argv[1]);
+	printf("position: %d\n", position);
 	
 	if( argc > 2){
 		printf("Only one input please\n");
 		return -1;
 	}
+	if( (position > CYLINDER_SIZE ) || (position < 0)   ){
+		printf("make sure the positong is between 0 and 5000\n");
+		return -1;
+	}
 	int i;
-	for( i = 0 ; i < argc ; i++){
-		printf(" argv[%d] %s\n",i, argv[i]);
-        
-    }
 
 	generateRequest();
 	printf("fcfs is:%d\n", firstComeFirstServe(request,atoi(argv[1])) );
